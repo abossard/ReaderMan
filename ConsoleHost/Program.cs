@@ -21,27 +21,49 @@ namespace ConsoleHost
         }
     }
 
-    class Program
+    public interface IObjectInformationSource
     {
+        IAsyncEnumerable<ObjectInformation> GetObjects();
+    }
+
+    public class FileBasedObjectInformationSource : IObjectInformationSource
+    {
+        private readonly string _path;
+        
         private static async IAsyncEnumerable<ObjectInformation> GetObjectsFromDirectory(
             string path,
             [EnumeratorCancellation] CancellationToken cancellationToken = default
         )
         {
-            foreach (string file in Directory.GetFiles(path))
+            foreach (var file in Directory.GetFiles(path))
             {
-                using (var reader = File.OpenText(file))
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    yield return new ObjectInformation(file, await reader.ReadToEndAsync());
+                    break;
                 }
+                using var reader = File.OpenText(file);
+                yield return new ObjectInformation(file, await reader.ReadToEndAsync());
             }
         }
 
+
+        public FileBasedObjectInformationSource(string path)
+        {
+            _path = path;
+        }
+
+        public IAsyncEnumerable<ObjectInformation> GetObjects() => GetObjectsFromDirectory(_path);
+    }
+
+    public class Program
+    {
+        
         static async Task Main(string[] args)
         {
             var path = args[0];
             var cancellation = new CancellationTokenSource();
-            await foreach (var objectInformation in GetObjectsFromDirectory(path).WithCancellation(cancellation.Token))
+            IObjectInformationSource objectSource = new FileBasedObjectInformationSource(path);
+            await foreach (var objectInformation in objectSource.GetObjects().WithCancellation(cancellation.Token))
             {
                 Console.WriteLine($"File: {objectInformation.URI}");
                 Console.WriteLine($"Content: {objectInformation.Content}");
