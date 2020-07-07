@@ -18,10 +18,12 @@ namespace ReaderMan.Local
         private static Task<IEnumerable<Uri>> GetFilesFromDirectory(string path) =>
             Task.FromResult(Directory.GetFiles(path).Select(file => new Uri(file)));
 
-        private static async Task<string> ReadLocalFileUri(Uri localFile)
+        private static async IAsyncEnumerable<Tuple<string, string>> ReadLocalFileUri(Uri localFile)
         {
+            var fileHandler = await File.ReadAllBytesAsync(localFile.AbsolutePath);
+            
             using var reader = File.OpenText(localFile.AbsolutePath);
-            return await reader.ReadToEndAsync();
+            yield return new Tuple<string, string>("myFile", await reader.ReadToEndAsync());
         }
 
         public IAsyncEnumerable<ObjectInformation<string>> GetObjects() =>
