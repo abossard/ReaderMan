@@ -11,7 +11,7 @@ namespace ReaderMan
         public static async IAsyncEnumerable<ObjectInformation<TResult>> GetObjectsComposer<TConfig, TResult>(
             TConfig config,
             Func<TConfig, Task<IEnumerable<Uri>>> listPackageUrisFromConfigFunc,
-            Func<Uri, IAsyncEnumerable<Tuple<string, TResult>>> readPackageIntoContent,
+            Func<Uri, IAsyncEnumerable<(string Name, TResult Content)>> readPackageIntoContent,
             [EnumeratorCancellation] CancellationToken cancellationToken = default
         )
         {
